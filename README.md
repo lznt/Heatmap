@@ -8,7 +8,6 @@ You can also choose the data according to playing date (last day 4th day info is
 
 If you have coordinate data from Oulu3D in cartesian coordinates, as we have for policebusts, there is a formula which translates cartesian to GPS. After this you can just give the coordinates to Google HeatMap API and it will work.
 
-I will later document this better.
-
+Code is documented to help user understand how it works.
 
 
