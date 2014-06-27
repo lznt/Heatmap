@@ -89,26 +89,35 @@ function changeOpacity() {
 
 google.maps.event.addDomListener(window, 'load', initialize);
 
-/* Function to get heatmap data from GA server. */
+/* Function to get heatmap data from GA server.
+ * @param {String} gang - String of the gang, whose data we want to show on Heatmap.
+ * @param {int} time - Describing the gap of time where we want to get the data, if time is null then we get data from the whole game session.
+ * @param {String} event - string describing which event is ran, can be "spray" or "policebust" or so.
+*/
 function connect(gang, time, event) {
 	var xmlHttp = null;
 	currentTime = time;
 	currentEvent = event;
-	//Get all gangs and heatmap data from the whole playing session (4day)
+
 	if (gang == null && time == null) {
 		if  (event == 'spray')
+			//In this if we get all data from all gangs from the whole game session period.
 			var url = "http://vm0063.virtues.fi/heatmaps/eventid/spray:blue%7Cspray:green%7Cspray:purple/time/a/";
 		else if (event == 'policebust')
+			//Here we get all data from policebusts, the whole session length.
 			var url = "http://vm0063.virtues.fi/heatmaps/eventid/policeInfoOnBust:Police/time/a/";
 	} else if (time && !gang) {
 		if (event == 'spray') {
+			//Here we get spray events from destined time, from all gangs.
 			var url = "http://vm0063.virtues.fi/heatmaps/eventid/spray:blue%7Cspray:green%7Cspray:purple/time/" + time + "/";
 		}
 	} else if (gang) { 
 		if (event == 'spray' && !time) {
 			time = 'a';
+			//Here we get from whole session period, from a defined gang.
 			var url = "http://vm0063.virtues.fi/heatmaps/eventid/spray:" + gang + "/time/" + time + "/";
 		} else if (time) {
+			//Here we get destined gang from destined period.
 			var url = "http://vm0063.virtues.fi/heatmaps/eventid/spray:" + gang + "/time/" + time + "/";
 		}
 	} 
@@ -126,35 +135,39 @@ function connect(gang, time, event) {
 	xmlHttp.open ("GET", url, false);
 	xmlHttp.send(null);
 }
-
+/** Function to generate the actual heatmap array
+ * @param {dictionary} dictionary - Dictionary that consists of XYZ Coordinates in a map, from GameAnalytics.
+ * @param {String} event - Event string to know which event we are running through, if policebust we have to first make Cartesian coordinates to GPS. 
+*/
 function generateHeatMapArr(dictionary, event) {
 	var jsondic = JSON.parse(dictionary);
 	var x = jsondic.x;
 	var z = jsondic.z;
-//Multiplier is to get the actual value since GameAnalytics requires INT values so I am required to multiply the coordinates to keep all viable data.
+
 	for (var i in x) { 
-		//Enable dividing when the values are actually available.
-    //If we are using cartesian coordinates, we have to turn them into GPS with Haversine and our relative 0,0 in Oulu3D
-    if (event == "policebust") {
-      var zc = z[i] / 1000000;
-      var xc = x[i] / 1000000;
-      console.log(zc + "--" + xc);
-      xc = xc/1000;
-      zc = zc/1000;
-      var R = 6367;
-      //lat1 and lon1 are 0,0 in oulu3d.
-      var lat1 = 65.012115;
-      var lon1 = 25.473323;   
-      var lat2 = lat1 + zc*180/(Math.PI*R);
-      var lon2 = lon1 + xc*180/(Math.PI*R*Math.cos(lat1));
-      locations.push(new google.maps.LatLng(lat2, lon2));
-      console.log(lat2 + "--" + lon2);
+	    if (event == "policebust") {
+	      //Divide coordinates, because they were multiplied to int, since GameAnalytics does not accept float or double values.
+	      var zc = z[i] / 1000000;
+	      var xc = x[i] / 1000000;
+	      console.log(zc + "--" + xc);
+	      xc = xc/1000;
+	      zc = zc/1000;
+	      var R = 6367;
+
+	      //lat1 and lon1 are 0,0 in Oulu3D.
+	      var lat1 = 65.012115;
+	      var lon1 = 25.473323;   
+
+	      var lat2 = lat1 + zc*180/(Math.PI*R);
+	      var lon2 = lon1 + xc*180/(Math.PI*R*Math.cos(lat1));
+	      locations.push(new google.maps.LatLng(lat2, lon2));
+	      console.log(lat2 + "--" + lon2);
 
     } else 
 		  locations.push(new google.maps.LatLng(z[i] / 1000000, x[i] / 1000000));
-		//locations.push(new google.maps.LatLng(65.0128555, 25.470544));
 	}
 	
+	//Here we assign data to the actual google maps heatmap array.
   	var pointArray = new google.maps.MVCArray(locations);
 
 	if(!heatmap) {
